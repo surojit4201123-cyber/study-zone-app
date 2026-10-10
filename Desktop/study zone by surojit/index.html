@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Zone By Surojit</title>
+    <!-- Web App Manifest Link for PWA & APK -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDKs (v8.10.1 Stable CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+
+    <!-- Main Auth Modal -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h2 id="auth-title">Welcome to Study Zone</h2>
+            <p id="auth-subtitle">Please choose how to continue</p>
+
+            <!-- Login Box -->
+            <div id="login-box">
+                <input type="email" id="login-email" placeholder="Email Address" class="form-input">
+                <input type="password" id="login-password" placeholder="Password" class="form-input">
+                <button onclick="loginWithEmail()" class="btn btn-primary">Log In</button>
+                
+                <div style="margin: 12px 0; border-top: 1px solid #ddd; position: relative;">
+                    <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 8px; font-size: 12px; color: #777;">OR</span>
+                </div>
+
+                <button onclick="loginAnonymously()" class="btn btn-dark" style="background: #4a5568;">👤 Continue as Guest (Anonymous)</button>
+                <p class="toggle-text">Don't have an account? <span onclick="showRegisterBox()">Register here</span></p>
+            </div>
+
+            <!-- Register Box -->
+            <div id="register-box" style="display: none;">
+                <input type="text" id="reg-fullname" placeholder="Full Name" class="form-input">
+                <input type="text" id="reg-school" placeholder="School Name" class="form-input">
+                <input type="date" id="reg-dob" class="form-input">
+                <label style="font-size: 12px; text-align: left; display: block; margin-top: 4px; color: #555;">Profile Picture (Optional):</label>
+                <input type="file" id="reg-photo-file" accept="image/*" class="form-input" onchange="handleRegisterPhotoSelect(event)">
+                <input type="email" id="reg-email" placeholder="Email Address" class="form-input">
+                <input type="password" id="reg-password" placeholder="Create Password" class="form-input">
+                <button onclick="registerWithEmail()" class="btn btn-success">Create Account</button>
+                <p class="toggle-text">Already have an account? <span onclick="showLoginBox()">Log in here</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anonymous Profile Info Completion Modal -->
+    <div id="anon-details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h3>📝 Complete Guest Profile</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Please enter your details to proceed as Guest</p>
+            <input type="text" id="anon-fullname" placeholder="Full Name" class="form-input">
+            <input type="text" id="anon-school" placeholder="School Name" class="form-input">
+            <input type="date" id="anon-dob" class="form-input">
+            <label style="font-size: 12px; text-align: left; display: block; margin-top: 4px; color: #555;">Profile Picture (Optional):</label>
+            <input type="file" accept="image/*" class="form-input" onchange="handleAnonPhotoSelect(event)">
+            <button onclick="saveAnonymousDetails()" class="btn btn-success" style="margin-top: 10px;">Save & Start Learning</button>
+        </div>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="nav-left">
+            <button class="hamburger" onclick="toggleSidebar()">☰</button>
+            <h1 class="logo" onclick="showSubjects()">Study Zone By Surojit</h1>
+        </div>
+        <div class="nav-right">
+            <button onclick="showProfilePage()" id="nav-profile-btn" style="display: none;" class="btn-sm btn-white">👤 Profile</button>
+            <button onclick="openAdminModal()" class="btn-sm btn-dark">Main Admin</button>
+        </div>
+    </header>
+
+    <!-- Sidebar Menu -->
+    <div id="sidebar-overlay" class="overlay" onclick="closeSidebar()"></div>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Study Zone By Surojit</h3>
+            <button class="close-sidebar" onclick="closeSidebar()">✕</button>
+        </div>
+
+        <div id="user-info-sidebar" style="display: none;" class="sidebar-user">
+            <img id="user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 24 24' fill='%231a73e8'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" alt="Avatar" class="avatar-img">
+            <h4 id="user-name-display">Student</h4>
+            <p id="user-email-display"></p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button onclick="navTo('subjects')">📁 Subjects</button>
+            <button onclick="navTo('papers')">📜 PYQ & Question Papers</button>
+            <button onclick="navTo('routine')">📅 Routine (Arts & Science)</button>
+            <button onclick="navTo('leaderboard')">🏆 Leaderboard</button>
+            <button onclick="navTo('profile')">👤 My Profile</button>
+            <button onclick="navTo('settings')">⚙️ Settings</button>
+            <button onclick="navTo('contact')">📞 Contact Us</button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button id="logout-btn" onclick="logoutUser()" class="btn btn-danger" style="display: none;">Logout</button>
+            <button onclick="openAdminFromSidebar()" class="btn btn-dark" style="margin-top: 10px;">🛡️ Main Admin Panel</button>
+        </div>
+    </aside>
+
+    <!-- Live Announcement Bar -->
+    <div id="announcement-bar">
+        📢 Notice: <span id="announcement-text">Welcome to Study Zone By Surojit!</span>
+    </div>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <div id="custom-code-container" style="padding: 10px;"></div>
+
+        <!-- Subjects Grid Section -->
+        <section id="subjects-section">
+            <h2>Select Subject</h2>
+            <div class="subjects-grid">
+                <div class="subject-card" onclick="openSubject('Bengali')"><div class="icon">📖</div><h3>Bengali</h3></div>
+                <div class="subject-card" onclick="openSubject('English')"><div class="icon">📖</div><h3>English</h3></div>
+                <div class="subject-card" onclick="openSubject('Math')"><div class="icon">📐</div><h3>Math</h3></div>
+                <div class="subject-card" onclick="openSubject('Geography')"><div class="icon">🌍</div><h3>Geography</h3></div>
+                <div class="subject-card" onclick="openSubject('History')"><div class="icon">📜</div><h3>History</h3></div>
+                <div class="subject-card" onclick="openSubject('Life Science')"><div class="icon">🔬</div><h3>Life Science</h3></div>
+                <div class="subject-card" onclick="openSubject('Physical Science')"><div class="icon">🧲</div><h3>Physical Science</h3></div>
+            </div>
+        </section>
+
+        <!-- Chapter / Notes Section -->
+        <section id="chapter-section" style="display: none;">
+            <div class="section-header">
+                <button onclick="showSubjects()" class="btn-sm btn-gray">← Back to Subjects</button>
+                <button onclick="openSubmitNoteModal()" class="btn-sm btn-success">+ Submit Note</button>
+            </div>
+            <h2 id="selected-subject-title">Notes</h2>
+            <div id="chapter-list"><p>Loading notes...</p></div>
+        </section>
+
+        <!-- Question Papers Section -->
+        <section id="papers-section" style="display: none;">
+            <h2>📜 Question Papers</h2>
+            <div class="tab-filters">
+                <button onclick="filterPapers('all', this)" class="paper-tab-btn active">📚 All Papers</button>
+                <button onclick="filterPapers('pyq', this)" class="paper-tab-btn">📜 Past Year (PYQ)</button>
+                <button onclick="filterPapers('school', this)" class="paper-tab-btn">🏫 School Exams</button>
+                <button onclick="filterPapers('tuition', this)" class="paper-tab-btn">📝 Tuition Exams</button>
+            </div>
+            <div id="papers-list-container" class="grid-container"><p>Loading papers...</p></div>
+        </section>
+
+        <!-- Routine Section -->
+        <section id="routine-section" style="display: none;">
+            <h2>📅 Routine & Exam Schedule</h2>
+            <div class="tab-filters" style="margin-bottom: 10px;">
+                <button onclick="switchRoutineStream('Arts', this)" class="stream-tab-btn active">🎨 Arts Stream</button>
+                <button onclick="switchRoutineStream('Science', this)" class="stream-tab-btn">🔬 Science Stream</button>
+            </div>
+            <div class="tab-filters">
+                <button onclick="switchRoutineType('tuition', this)" class="type-tab-btn active">📚 Tuition Routine</button>
+                <button onclick="switchRoutineType('exam', this)" class="type-tab-btn">📝 Exam Routine</button>
+            </div>
+            <div id="routine-list-container" style="margin-top: 15px;"><p>Loading routine...</p></div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile-section" style="display: none;" class="card-section">
+            <div class="section-header">
+                <h2>👤 My Profile & Settings</h2>
+                <button onclick="showSubjects()" class="btn-sm btn-gray">← Back to Home</button>
+            </div>
+            <div class="grid-2-col">
+                <div class="sub-card">
+                    <h3>✏️ Edit Profile Details</h3>
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <img id="edit-profile-photo-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='70' height='70' viewBox='0 0 24 24' fill='%231a73e8'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" class="profile-preview-img">
+                    </div>
+                    <label>Full Name:</label>
+                    <input type="text" id="edit-profile-name" class="form-input">
+                    <label>Date of Birth (DOB):</label>
+                    <input type="date" id="edit-profile-dob" class="form-input">
+                    <label>Profile Photo:</label>
+                    <input type="file" id="edit-profile-photo-file" accept="image/*" onchange="handleEditImageUpload(event)" class="form-input">
+                    <label>School Name:</label>
+                    <input type="text" id="edit-profile-school" class="form-input">
+                    <button onclick="updateUserProfile()" class="btn btn-primary" style="margin-top: 10px;">Save Changes</button>
+                </div>
+                <div class="sub-card">
+                    <h3>📜 Track Your Submitted Notes</h3>
+                    <div id="user-submitted-notes-list"><p>Loading your submissions...</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings-section" style="display: none;" class="card-section">
+            <h2>⚙️ App Settings</h2>
+            <div class="settings-row">
+                <span>🌙 Dark Mode</span>
+                <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this.checked)">
+            </div>
+            <button onclick="showSubjects()" class="btn btn-primary" style="margin-top: 20px; width: auto;">Back to Home</button>
+        </section>
+
+        <!-- Contact Us Section -->
+        <section id="contact-section" style="display: none;" class="card-section text-center">
+            <h2>📞 Contact Us</h2>
+            <div class="contact-box">
+                <p>📸 <b>Instagram:</b> <a id="display-insta-1" href="https://instagram.com/sanatani_surojit" target="_blank">@sanatani_surojit</a></p>
+                <p>📧 <b>Gmail:</b> <a id="display-gmail-1" href="mailto:surojit201123@gmail.com">surojit201123@gmail.com</a></p>
+            </div>
+            <br>
+            <button onclick="showSubjects()" class="btn btn-primary" style="width: auto;">Back to Home</button>
+        </section>
+
+        <!-- Leaderboard Section -->
+        <section id="leaderboard-section" style="display: none;" class="card-section">
+            <h2>🏆 Student Activity Leaderboard</h2>
+            <p class="subtitle">Rankings based on active study time spent on the portal.</p>
+            <div id="leaderboard-list-container"><p>Loading leaderboard...</p></div>
+        </section>
+
+        <!-- Admin Dashboard Panel -->
+        <section id="admin-dashboard" style="display: none;" class="card-section">
+            <div class="section-header">
+                <div>
+                    <h2 id="admin-panel-heading">🛡️ Main Admin Dashboard</h2>
+                    <small id="admin-role-badge" class="badge">Super Admin</small>
+                </div>
+                <button onclick="closeAdminDashboard()" class="btn-sm btn-gray">Exit Admin</button>
+            </div>
+
+            <!-- Admin Nav Tabs -->
+            <div class="admin-tabs-nav">
+                <button id="tab-btn-upload-content" class="dash-tab-btn active" onclick="switchAdminTab(event, 'upload-content')">📖 Upload Notes</button>
+                <button id="tab-btn-upload-paper" class="dash-tab-btn" onclick="switchAdminTab(event, 'upload-paper')">📜 Upload Papers</button>
+                <button id="tab-btn-upload-routine" class="dash-tab-btn" onclick="switchAdminTab(event, 'upload-routine')">📅 Add Routine / Exam</button>
+                <button id="tab-btn-manage-content" class="dash-tab-btn" onclick="switchAdminTab(event, 'manage-content')">🗑️ Manage Uploads</button>
+                <button id="tab-btn-review-notes" class="dash-tab-btn" onclick="switchAdminTab(event, 'review-notes')">⏳ Review Notes</button>
+                <button id="tab-btn-contact-edit" class="dash-tab-btn" onclick="switchAdminTab(event, 'contact-edit')">📞 Edit Contact</button>
+                <button id="tab-btn-announcement" class="dash-tab-btn" onclick="switchAdminTab(event, 'announcement')">📢 Notice</button>
+                <button id="tab-btn-code-editor" class="dash-tab-btn" onclick="switchAdminTab(event, 'code-editor')">💻 Code Editor</button>
+                <button id="tab-btn-security" class="dash-tab-btn" onclick="switchAdminTab(event, 'security')">🔐 Security</button>
+                <button id="tab-btn-backup" class="dash-tab-btn" onclick="switchAdminTab(event, 'backup')">💾 Backup</button>
+                <button id="tab-btn-manage-users" class="dash-tab-btn" onclick="switchAdminTab(event, 'manage-users')">👥 Students</button>
+                <button id="tab-btn-activity-log" class="dash-tab-btn" onclick="switchAdminTab(event, 'activity-log')">📋 Logs</button>
+            </div>
+
+            <!-- Tab 1: Upload Notes -->
+            <div id="tab-upload-content" class="dash-tab-content">
+                <h3>Add Chapter Note / PDF</h3>
+                <label>Subject:</label>
+                <select id="admin-subject-select" class="form-input">
+                    <option value="Bengali">Bengali</option>
+                    <option value="English">English</option>
+                    <option value="Math">Math</option>
+                    <option value="Geography">Geography</option>
+                    <option value="History">History</option>
+                    <option value="Life Science">Life Science</option>
+                    <option value="Physical Science">Physical Science</option>
+                </select>
+                <label>Note Title:</label>
+                <input type="text" id="chapter-name-input" placeholder="e.g. Chapter 1 Notes" class="form-input">
+                <label>PDF / Drive Link:</label>
+                <input type="url" id="pdf-url-input" placeholder="Google Drive Link" class="form-input">
+                <button onclick="addNewContent()" class="btn btn-primary">Save Note</button>
+            </div>
+
+            <!-- Tab 2: Upload Question Papers -->
+            <div id="tab-upload-paper" class="dash-tab-content" style="display: none;">
+                <h3>Upload Question Paper</h3>
+                <label>Category:</label>
+                <select id="admin-paper-category" class="form-input">
+                    <option value="pyq">📜 Past Year Question Paper (PYQ)</option>
+                    <option value="school">🏫 School Exam Paper</option>
+                    <option value="tuition">📝 Tuition Question Paper</option>
+                </select>
+                <label>Subject:</label>
+                <select id="admin-paper-subject" class="form-input">
+                    <option value="Bengali">Bengali</option>
+                    <option value="English">English</option>
+                    <option value="Math">Math</option>
+                    <option value="Geography">Geography</option>
+                    <option value="History">History</option>
+                    <option value="Life Science">Life Science</option>
+                    <option value="Physical Science">Physical Science</option>
+                </select>
+                <label>Paper Title:</label>
+                <input type="text" id="admin-paper-title" placeholder="e.g. Madhyamik 2023" class="form-input">
+                <label>PDF / Drive Link:</label>
+                <input type="url" id="admin-paper-url" placeholder="Google Drive Link" class="form-input">
+                <button onclick="addNewQuestionPaper()" class="btn btn-success">Upload Paper</button>
+            </div>
+
+            <!-- Tab: Add Routine / Exam Text -->
+            <div id="tab-upload-routine" class="dash-tab-content" style="display: none;">
+                <h3>Add Routine or Exam Schedule</h3>
+                <label>Stream:</label>
+                <select id="admin-routine-stream" class="form-input">
+                    <option value="Arts">🎨 Arts Stream</option>
+                    <option value="Science">🔬 Science Stream</option>
+                </select>
+                <label>Category Type:</label>
+                <select id="admin-routine-type" class="form-input" onchange="toggleRoutineChapterField(this.value)">
+                    <option value="tuition">📚 Tuition Routine (Day & Subjects)</option>
+                    <option value="exam">📝 Exam Routine (Date, Time, Chapters)</option>
+                </select>
+                <label>Day (e.g. Monday) or Date (e.g. 15 Oct 2026):</label>
+                <input type="text" id="admin-routine-daydate" placeholder="e.g. Monday / 15 Oct 2026" class="form-input">
+                <label>Time (e.g. 8:00 AM - 10:00 AM):</label>
+                <input type="text" id="admin-routine-time" placeholder="e.g. 8:00 AM - 10:00 AM" class="form-input">
+                <label>Subject(s) Name:</label>
+                <input type="text" id="admin-routine-subject" placeholder="e.g. Bengali, English, Geography" class="form-input">
+                
+                <!-- Dynamic Chapter / Syllabus Container -->
+                <div id="routine-chapter-container" style="display: none;">
+                    <label>Chapter / Syllabus Details:</label>
+                    <input type="text" id="admin-routine-chapter" placeholder="e.g. Chapter 1, 2 & 3" class="form-input">
+                </div>
+
+                <button onclick="addNewRoutineEntry()" class="btn btn-primary" style="margin-top: 10px;">Add Entry</button>
+            </div>
+
+            <!-- Tab 3: Manage Uploads -->
+            <div id="tab-manage-content" class="dash-tab-content" style="display: none;">
+                <h3>Manage / Delete Uploaded Items</h3>
+                <div id="manage-content-list"><p>Loading...</p></div>
+            </div>
+
+            <!-- Tab 4: Review Notes -->
+            <div id="tab-review-notes" class="dash-tab-content" style="display: none;">
+                <h3>Pending Student Notes (Review & Approve)</h3>
+                <div id="pending-notes-container"><p>Loading...</p></div>
+            </div>
+
+            <!-- Tab 5: Edit Contact -->
+            <div id="tab-contact-edit" class="dash-tab-content" style="display: none;">
+                <h3>Edit Contact Info</h3>
+                <label>Instagram Username:</label>
+                <input type="text" id="edit-insta-1" value="sanatani_surojit" class="form-input">
+                <button onclick="updateContactInfo()" class="btn btn-primary" style="margin-top: 10px;">Save Contact Info</button>
+            </div>
+
+            <!-- Tab 6: Announcement -->
+            <div id="tab-announcement" class="dash-tab-content" style="display: none;">
+                <h3>Update Announcement Notice</h3>
+                <input type="text" id="new-announcement" placeholder="Enter live notice text..." class="form-input">
+                <button onclick="updateNotice()" class="btn btn-primary">Update Live Notice</button>
+            </div>
+
+            <!-- Tab 7: Code Editor -->
+            <div id="tab-code-editor" class="dash-tab-content" style="display: none;">
+                <h3>💻 Live HTML / Code Editor</h3>
+                <textarea id="admin-code-input" rows="8" class="form-input code-area"></textarea>
+                <button onclick="saveCustomCode()" class="btn btn-primary" style="margin-top: 10px;">Publish Code</button>
+            </div>
+
+            <!-- Tab 8: Security -->
+            <div id="tab-security" class="dash-tab-content" style="display: none;">
+                <h3>🔐 Change Admin Passcode</h3>
+                <label>New Main Admin Passcode:</label>
+                <input type="password" id="new-passcode-input" placeholder="New Main Admin passcode" class="form-input">
+                <button onclick="updateAdminPasscode()" class="btn btn-danger">Update Passcode</button>
+            </div>
+
+            <!-- Tab 9: Backup -->
+            <div id="tab-backup" class="dash-tab-content" style="display: none;">
+                <h3>💾 App Data Backup & Restore</h3>
+                <button onclick="downloadBackup()" class="btn btn-primary" style="margin-bottom: 15px;">📥 Download Backup</button>
+                <input type="file" id="backup-file-input" accept=".json" class="form-input">
+                <button onclick="restoreBackupData()" class="btn btn-success">📤 Restore Data</button>
+            </div>
+
+            <!-- Tab 10: Students & Leaderboard Management -->
+            <div id="tab-manage-users" class="dash-tab-content" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">Registered Students & Profiles</h3>
+                    <button onclick="resetLeaderboardTime()" class="btn btn-danger" style="width: auto; padding: 8px 15px;">🔄 Reset Leaderboard Time</button>
+                </div>
+                <div id="users-list-container"><p>Loading students...</p></div>
+            </div>
+
+            <!-- Tab 11: Activity Logs -->
+            <div id="tab-activity-log" class="dash-tab-content" style="display: none;">
+                <h3>System Activity Logs</h3>
+                <div id="activity-log-container"><p>Loading logs...</p></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Student Detail View Modal for Admin -->
+    <div id="user-detail-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h3>👤 Student Profile Information</h3>
+            <div style="text-align: center; margin: 15px 0;">
+                <img id="view-user-photo" src="" class="profile-preview-img" style="width:90px; height:90px;">
+            </div>
+            <p style="text-align:left; margin:5px 0;"><strong>Full Name:</strong> <span id="view-user-name"></span></p>
+            <p style="text-align:left; margin:5px 0;"><strong>Email Address:</strong> <span id="view-user-email"></span></p>
+            <p style="text-align:left; margin:5px 0;"><strong>School Name:</strong> <span id="view-user-school"></span></p>
+            <p style="text-align:left; margin:5px 0;"><strong>Date of Birth (DOB):</strong> <span id="view-user-dob"></span></p>
+            <p style="text-align:left; margin:5px 0;"><strong>Time Spent:</strong> <span id="view-user-time"></span></p>
+            <button onclick="closeUserDetailModal()" class="btn btn-primary" style="margin-top: 15px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Student Submit Note Modal -->
+    <div id="submit-note-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h3>📤 Submit Note for Review</h3>
+            <label>Note Title:</label>
+            <input type="text" id="student-note-title" placeholder="e.g. Chapter Summary" class="form-input">
+            <label>PDF / Drive Link:</label>
+            <input type="url" id="student-note-link" placeholder="Google Drive Link" class="form-input">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="closeSubmitNoteModal()" class="btn btn-gray">Cancel</button>
+                <button onclick="submitNoteForReview()" class="btn btn-success">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Passcode Modal -->
+    <div id="admin-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <h3 id="modal-title">Main Admin Passcode</h3>
+            <p id="modal-desc">Enter passcode to continue</p>
+            <input type="password" id="passcode-input" placeholder="Enter Passcode" class="form-input text-center">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="closeModal()" class="btn btn-gray">Cancel</button>
+                <button onclick="verifyPasscode()" class="btn btn-primary">Enter</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker Registered!'))
+            .catch(err => console.log('Service Worker Error:', err));
+        });
+      }
+    </script>
+</body>
+</html>

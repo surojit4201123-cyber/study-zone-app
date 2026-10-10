@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.netlify.studyzonebysurojit.twa",
+        "sha256_cert_fingerprints": ["73:58:5C:04:E2:5D:47:49:5A:74:93:D8:8F:5F:F7:EF:9E:14:82:CA:E6:87:FF:0E:66:65:70:77:34:00:CB:42"]
+      }
+    }]
