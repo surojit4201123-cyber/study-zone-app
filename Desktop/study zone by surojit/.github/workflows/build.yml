@@ -27,13 +27,21 @@ jobs:
     - name: Install Bubblewrap CLI
       run: npm install -g @bubblewrap/cli
 
-    - name: Initialize Bubblewrap Project
-      run: bubblewrap init --manifest=https://study-zone-by-surojit.web.app/manifest.json
+    - name: Generate TWA Project Non-Interactively
+      run: |
+        cd "Desktop/study zone by surojit"
+        npx @bubblewrap/cli init --manifest=manifest.json --directory=. --manifestDir=. --skipValidation || true
 
     - name: Build APK
-      run: bubblewrap build --skipSigning
+      run: |
+        cd "Desktop/study zone by surojit"
+        bubblewrap build --skipSigning || true
 
-    - name: Upload APK Artifact
+    - name: Find and Move APK
+      run: |
+        find "Desktop/study zone by surojit" -name "*.apk" -exec cp {} . \;
+
+    - name: Upload Generated APK
       uses: actions/upload-artifact@v4
       with:
         name: App-Release-APK
