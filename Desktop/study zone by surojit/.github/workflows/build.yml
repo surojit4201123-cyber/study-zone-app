@@ -24,25 +24,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Install Bubblewrap CLI
-      run: npm install -g @bubblewrap/cli
+    - name: Install PWABuilder CLI
+      run: npm install -g @pwabuilder/pwabuilder
 
-    - name: Generate TWA Project Non-Interactively
+    - name: Build APK with PWABuilder
       run: |
-        cd "Desktop/study zone by surojit"
-        npx @bubblewrap/cli init --manifest=manifest.json --directory=. --manifestDir=. --skipValidation || true
-
-    - name: Build APK
-      run: |
-        cd "Desktop/study zone by surojit"
-        bubblewrap build --skipSigning || true
-
-    - name: Find and Move APK
-      run: |
-        find "Desktop/study zone by surojit" -name "*.apk" -exec cp {} . \;
+        npx pwabuilder "https://surojit4201123-cyber.github.io/study-zone-app/" -o ./output -p android || true
 
     - name: Upload Generated APK
       uses: actions/upload-artifact@v4
       with:
         name: App-Release-APK
-        path: "*.apk"
+        path: "**/*.apk"
